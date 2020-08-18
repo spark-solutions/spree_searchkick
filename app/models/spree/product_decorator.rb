@@ -1,6 +1,12 @@
 module Spree::ProductDecorator
   def self.prepended(base)
-    base.searchkick callbacks: :async, word_start: [:name], settings: { number_of_replicas: 0 } unless base.respond_to?(:searchkick_index)
+    base.searchkick(
+      callbacks: :async,
+      word_start: [:name],
+      settings: { number_of_replicas: 0 },
+      merge_mappings: merge_mappings,
+      mappings: custom_mappings
+    ) unless base.respond_to?(:searchkick_index)
 
     base.scope :search_import, lambda {
       includes(
@@ -51,6 +57,14 @@ module Spree::ProductDecorator
     end
   end
 
+  def self.merge_mappings
+    true
+  end
+
+  def self.custom_mappings
+    {}
+  end
+
   def search_data
     all_taxons = taxon_and_ancestors
 
@@ -79,7 +93,7 @@ module Spree::ProductDecorator
     option_types.each do |option_type|
       json.merge!(
         Hash[
-          option_type.name.downcase, 
+          option_type.name.downcase,
           variants.map { |v| v.option_values.find_by(option_type: option_type)&.name }.compact.uniq
         ]
       )
