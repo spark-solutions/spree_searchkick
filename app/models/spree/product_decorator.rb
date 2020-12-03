@@ -64,7 +64,7 @@ module Spree::ProductDecorator
   end
 
   def search_data
-    all_taxons = taxon_and_ancestors
+    all_taxons = taxons.map { |t| t.self_and_ancestors.pluck(:id, :name) }.flatten.uniq
     filtered_option_types = option_types.filterable.pluck(:id, :name)
     json = {
       id: id,
@@ -76,8 +76,8 @@ module Spree::ProductDecorator
       price: price,
       currency: currency,
       conversions: orders.complete.count,
-      taxon_ids: all_taxons.map(&:id),
-      taxon_names: all_taxons.map(&:name),
+      taxon_ids: all_taxons.map(&:first),
+      taxon_names: all_taxons.map(&:last),
       option_type_ids: filtered_option_types.map(&:first),
       option_type_names: filtered_option_types.map(&:last),
       option_value_ids: variants.map { |v| v.option_value_ids }.flatten.compact.uniq,
@@ -109,10 +109,6 @@ module Spree::ProductDecorator
 
   def index_data
     {}
-  end
-
-  def taxon_by_taxonomy(taxonomy_id)
-    taxons.joins(:taxonomy).where(spree_taxonomies: { id: taxonomy_id })
   end
 
   def loaded(prop, incl)
